@@ -15,7 +15,41 @@ $("copyCode").addEventListener("click",async()=>{if(!state)return;try{await navi
 $("startBtn").addEventListener("click",()=>socket.emit("startGame"));
 $("leaveBtn").addEventListener("click",()=>{socket.disconnect();socket.connect();showHome();toast("You left the room.")});
 $("soundBtn").addEventListener("click",()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊":"🔇";if(soundOn)tone(740)});
-$("answerForm").addEventListener("submit",e=>{e.preventDefault();const answer=$("fakeAnswer").value.trim();if(!answer)return;myBluff=answer;socket.emit("submitAnswer",{answer});$("fakeAnswer").value=""});
+$("answerForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const answer = $("fakeAnswer").value.trim();
+
+  if (!answer) {
+    toast("Please enter your bluff first!");
+    return;
+  }
+
+  if (!socket.connected) {
+    toast("Connection lost. Please try again.");
+    return;
+  }
+
+  const btn = $("answerForm").querySelector('button[type="submit"]');
+
+  if (btn.disabled) return;
+
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
+
+  myBluff = answer;
+  socket.emit("submitAnswer", { answer });
+  $("fakeAnswer").value = "";
+
+  setTimeout(() => {
+    if (state?.phase === "answer" &&
+        !state.players.find(p => p.id === myId)?.submitted) {
+      btn.disabled = false;
+      btn.textContent = "Submit Bluff";
+      toast("Submission not confirmed. Please try again.");
+    }
+  }, 3000);
+});
 $("nextBtn").addEventListener("click",()=>socket.emit("nextRound"));
 $("againBtn").addEventListener("click",()=>socket.emit("playAgain"));
 socket.on("connect",()=>{myId=socket.id});
